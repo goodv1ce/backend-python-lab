@@ -1,6 +1,6 @@
-# Laboratory work #1
+# Python back-end laboratory works repository
 
-This is a Python Flask web application Dockerized and managed using Docker Compose for easy deployment.
+This is a repository for laboratory works of python back-end subject
 
 ## Prerequisites
 
