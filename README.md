@@ -29,4 +29,4 @@ To get this application up and running with Docker Compose, follow these steps:
    docker-compose build
    docker-compose up
 
-4. The Flask app should now be accessible at http://localhost:8080.
+4. The Flask app should now be accessible at http://localhost:5050.
