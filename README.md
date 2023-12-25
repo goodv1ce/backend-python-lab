@@ -1,3 +1,5 @@
+# Варіант: 16 mod 3 = 1 (Валюти)
+
 # Python back-end laboratory works repository
 
 This is a repository for laboratory works of python back-end subject
