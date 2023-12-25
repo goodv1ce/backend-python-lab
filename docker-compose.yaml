@@ -1,7 +1,7 @@
 version: '3'
 
 services:
-  app:
+  myapp:
     restart: always
     build:
       context: .
@@ -10,9 +10,11 @@ services:
       PORT: "5050"
     ports:
       - "5050:5050"
+
   db:
+    restart: always
     image: postgres:15.4-alpine3.18
     env_file:
       - .env
     ports:
-      - "5434:5434"
+      - "5432:5432"

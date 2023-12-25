@@ -1,3 +1,5 @@
+import uuid
+
 from myapp import app
 from flask import jsonify, request
 from datetime import datetime
@@ -150,9 +152,6 @@ def get_categories():
 
 @app.route('/category/<category_id>', methods=['DELETE'])
 def delete_category(category_id):
-    if not uuid.UUID(category_id, version=4):
-        return jsonify({"error": "Invalid category_id format"}), 400
-
     category = Category.query.get(category_id)
     if category:
         db.session.delete(category)
