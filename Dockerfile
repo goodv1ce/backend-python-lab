@@ -8,4 +8,6 @@ RUN python -m pip install -r requirements.txt
 
 COPY . /app
 
+#ENV FLASK_APP=app
+
 CMD flask --app app run -h 0.0.0.0 -p $PORT
