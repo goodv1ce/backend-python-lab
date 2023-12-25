@@ -1,4 +1,4 @@
-# Python back-end laboratory works repositoryd
+# Python back-end laboratory works repository
 
 This is a repository for laboratory works of python back-end subject
 

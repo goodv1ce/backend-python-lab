@@ -1,11 +1,11 @@
-from app import app
+from myapp import app
 from flask import jsonify, request
 from datetime import datetime
 from sqlalchemy.orm.exc import NoResultFound
 
-from app.models import User, db, Category, Record, Currency
+from myapp.models import User, db, Category, Record, Currency
 
-from app.schemes import UserSchema, CategorySchema, RecordSchema, CurrencySchema
+from myapp.schemes import UserSchema, CategorySchema, RecordSchema, CurrencySchema
 from marshmallow import ValidationError
 
 
