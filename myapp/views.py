@@ -114,17 +114,15 @@ def register_user():
     except ValidationError as e:
         return jsonify({"error": e.messages}), 400
 
-    currency_name = data.get('default_currency_name')
-    currency = Currency.query.filter_by(name=currency_name).first()
-
-    if not currency:
-        currency = Currency(name=currency_name)
-        db.session.add(currency)
-        db.session.commit()
+    currency_id = data.get('default_currency_id')
+    try:
+        Currency.query.filter_by(id=currency_id).one()
+    except NoResultFound:
+        return jsonify({"error": f"Currency with id {currency_id} not found"}), 400
 
     hashed_password = pbkdf2_sha256.hash(data['password'])
 
-    user = User(name=data['name'], default_currency_id=currency.id, password=hashed_password)
+    user = User(name=data['name'], default_currency_id=currency_id, password=hashed_password)
     db.session.add(user)
     db.session.commit()
 
