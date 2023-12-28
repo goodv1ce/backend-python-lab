@@ -17,7 +17,7 @@ class RecordSchema(Schema):
 class UserSchema(Schema):
     id = fields.Integer(dump_only=True)
     name = fields.String(required=True)
-    default_currency_id = fields.Integer(required=True)
+    default_currency_id = fields.Integer()
     password = fields.String(required=True)
 
 
