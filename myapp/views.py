@@ -1,5 +1,8 @@
 import uuid
 
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required
+from passlib.handlers.pbkdf2 import pbkdf2_sha256
+
 from myapp import app
 from flask import jsonify, request
 from datetime import datetime
@@ -29,6 +32,41 @@ def internal_server_error(error):
     return jsonify({"error": "Internal Server Error"}), 500
 
 
+app.config["JWT_SECRET_KEY"] = "jose"
+jwt = JWTManager(app)
+
+
+@jwt.expired_token_loader
+def expired_token_callback(jwt_header, jwt_payload):
+    return (
+        jsonify({"message": "The token has expired.", "error": "token_expired"}),
+        401,
+    )
+
+
+@jwt.invalid_token_loader
+def invalid_token_callback(error):
+    return (
+        jsonify(
+            {"message": "Signature verification failed.", "error": "invalid_token"}
+        ),
+        401,
+    )
+
+
+@jwt.unauthorized_loader
+def missing_token_callback(error):
+    return (
+        jsonify(
+            {
+                "description": "Request does not contain an access token.",
+                "error": "authorization_required",
+            }
+        ),
+        401,
+    )
+
+
 @app.route('/healthcheck', methods=['GET'])
 def healthcheck():
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -46,6 +84,7 @@ def home():
 
 
 @app.route('/currency', methods=['POST'])
+@jwt_required()
 def create_currency():
     currency_schema = CurrencySchema()
     try:
@@ -61,26 +100,31 @@ def create_currency():
 
 
 @app.route('/currencies', methods=['GET'])
+@jwt_required()
 def get_currencies():
     currency_schema = CurrencySchema(many=True)
     return jsonify(currency_schema.dump(Currency.query.all())), 200
 
 
-@app.route('/user', methods=['POST'])
-def create_user():
+@app.route('/register', methods=['POST'])
+def register_user():
     user_schema = UserSchema()
     try:
         data = user_schema.load(request.get_json())
     except ValidationError as e:
         return jsonify({"error": e.messages}), 400
 
-    currency_id = data.get('default_currency_id')
-    try:
-        Currency.query.filter_by(id=currency_id).one()
-    except NoResultFound:
-        return jsonify({"error": f"Currency with id {currency_id} not found"}), 400
+    currency_name = data.get('default_currency_name')
+    currency = Currency.query.filter_by(name=currency_name).first()
 
-    user = User(name=data['name'], default_currency_id=currency_id)
+    if not currency:
+        currency = Currency(name=currency_name)
+        db.session.add(currency)
+        db.session.commit()
+
+    hashed_password = pbkdf2_sha256.hash(data['password'])
+
+    user = User(name=data['name'], default_currency_id=currency.id, password=hashed_password)
     db.session.add(user)
     db.session.commit()
 
@@ -90,7 +134,28 @@ def create_user():
     }), 201
 
 
+@app.route('/login', methods=['POST'])
+def login_user():
+    user_schema = UserSchema()
+    try:
+        data = user_schema.load(request.get_json())
+    except ValidationError as e:
+        return jsonify({"error": e.messages}), 400
+
+    username = data.get('name')
+    password = data.get('password')
+
+    user = User.query.filter_by(name=username).first()
+
+    if user and pbkdf2_sha256.verify(password, user.password):
+        access_token = create_access_token(identity=user.id)
+        return jsonify({"access_token": access_token}), 200
+    else:
+        return jsonify({"error": "Invalid username or password"}), 401
+
+
 @app.route('/users', methods=['GET'])
+@jwt_required()
 def get_users():
     users = User.query.all()
     user_schema = UserSchema(many=True)
@@ -98,6 +163,7 @@ def get_users():
 
 
 @app.route('/user/<user_id>', methods=['GET'])
+@jwt_required()
 def get_user(user_id):
     user = User.query.get(user_id)
     if user:
@@ -108,6 +174,7 @@ def get_user(user_id):
 
 
 @app.route('/user/<user_id>', methods=['DELETE'])
+@jwt_required()
 def delete_user(user_id):
     user = User.query.get(user_id)
     if user:
@@ -119,6 +186,7 @@ def delete_user(user_id):
 
 
 @app.route('/category', methods=['POST'])
+@jwt_required()
 def create_category():
     data = request.get_json()
 
@@ -144,6 +212,7 @@ def create_category():
 
 
 @app.route('/categories', methods=['GET'])
+@jwt_required()
 def get_categories():
     categories = Category.query.all()
     category_schema = CategorySchema(many=True)
@@ -151,6 +220,7 @@ def get_categories():
 
 
 @app.route('/category/<category_id>', methods=['DELETE'])
+@jwt_required()
 def delete_category(category_id):
     category = Category.query.get(category_id)
     if category:
@@ -164,6 +234,7 @@ def delete_category(category_id):
 
 
 @app.route('/record', methods=['POST'])
+@jwt_required()
 def create_record():
     data = request.get_json()
 
@@ -217,6 +288,7 @@ def create_record():
 
 
 @app.route('/records', methods=['GET'])
+@jwt_required()
 def get_records():
     user_id = request.args.get('user_id')
     category_id = request.args.get('category_id')
@@ -258,6 +330,7 @@ def get_records():
 
 
 @app.route('/record/<record_id>', methods=['GET'])
+@jwt_required()
 def get_record(record_id):
     record = Record.query.get(record_id)
     if record:
@@ -268,6 +341,7 @@ def get_record(record_id):
 
 
 @app.route('/record/<record_id>', methods=['DELETE'])
+@jwt_required()
 def delete_record(record_id):
     record = Record.query.get(record_id)
     if record:
